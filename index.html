@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mars Gateway: Orbit Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;--bg:#0a0c14;--card:#141829;--line:#262c4a;--tx:#f2f4fb;--mut:#8f98b8;--ac:#ff7a45;--ok:#4cd9a0;--bad:#ff5d6c}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 15px/1.5 'Inter Tight',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}section.wrap{margin:120px auto 0}#overview{margin-top:48px}body{padding-bottom:90px}
+h1,h2,h3{font-weight:800;letter-spacing:-.045em;line-height:1;margin:0}
+h1{font-size:clamp(44px,9vw,104px)}h2{font-size:clamp(30px,5vw,52px);margin-bottom:18px}h3{font-size:19px;letter-spacing:-.03em;margin-bottom:8px}
+h1 span,h2 span,.logo span{color:var(--ac)}
+.top{display:flex;align-items:center;gap:14px;padding-top:14px;padding-bottom:14px;flex-wrap:wrap}.logo{font-weight:800;font-size:20px;letter-spacing:-.04em;margin-right:auto}
+nav{display:flex;gap:14px;flex-wrap:wrap}nav a{color:var(--mut);text-decoration:none;font-size:14px}nav a:hover{color:var(--tx)}
+button,select,input[type=number]{font:inherit;color:var(--tx);background:#1f2540;border:1px solid #38406c;border-radius:8px;padding:7px 11px}button{cursor:pointer}button.on{background:var(--ac);border-color:var(--ac);color:#111;font-weight:700;box-shadow:0 0 0 3px rgba(255,122,69,.35)}[data-p].on::before{content:"✓ "}
+.mut{color:var(--mut)}.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.pills b{border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-weight:500;font-size:13px}
+.hero p{max-width:720px;font-size:17px;color:#c5cbe3;margin-top:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.sim{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:14px}@media(max-width:880px){.sim{grid-template-columns:1fr}}
+canvas{width:100%;height:min(72vh,580px);display:block;border-radius:14px;background:#06070d;touch-action:none;cursor:grab}
+.side{display:grid;gap:10px;align-content:start}.row{display:flex;gap:6px;flex-wrap:wrap}.row>*{flex:1}
+.tgs{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px}.tgs label{display:flex;gap:6px;align-items:center}
+.side label.f{display:grid;gap:3px;font-size:13px;color:var(--mut)}input[type=range]{width:100%;accent-color:var(--ac)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}.st{border:1px solid var(--line);border-radius:9px;padding:7px 9px}.st b{display:block;font-size:16px;letter-spacing:-.02em}.st span{font-size:11.5px;color:var(--mut)}
+.good{color:var(--ok)}.bad{color:var(--bad)}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:500}#dash th{cursor:pointer}td.best{color:var(--ok);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.bar{height:5px;background:var(--line);border-radius:3px;margin-top:3px}.bar i{display:block;height:100%;border-radius:3px}
+.wr{display:grid;grid-template-columns:minmax(150px,230px) 1fr 52px;gap:10px;align-items:center;margin:6px 0;font-size:14px}
+.rg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}summary{cursor:pointer;font-weight:700}pre{white-space:pre-wrap;font:13px/1.6 ui-monospace,Menlo,monospace;color:#c5cbe3}
+a{color:#7fb8ff}.note{font-size:12.5px;color:var(--mut)}
+#join{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:9;padding:16px}#join .box{background:#fff;color:#111;border-radius:16px;padding:20px;text-align:center;max-width:340px}#qr{display:flex;justify-content:center;margin:12px 0}#url{font-size:11px;word-break:break-all;color:#555}#join button{color:#111;background:#eee;border-color:#ccc}
+</style></head><body>
+<div id="join"><div class="box"><b>Scan to join</b><div id="qr"></div><div id="url"></div><button id="jc">Close</button></div></div>
+<header class="wrap top"><span class="logo">Mars Gateway<span>.</span></span><nav><a href="#sim">Simulator</a><a href="#dash">Compare</a><a href="#perf">Performance</a><a href="#weights">Priorities</a><a href="#rec">Result</a><a href="#method">Method</a></nav><button id="jb">Join by QR</button></header>
+
+<section class="wrap hero" id="overview"><h1>Which Mars orbit for the Gateway<span>.</span></h1>
+<p>An interactive trade study for a four-crew, expandable station that supports Mars-surface missions and Phobos and Deimos exploration. Move the station, advance time, change your mission priorities, and watch the recommended orbit update.</p>
+<div class="pills"><b>Low · 250 km</b><b>Medium · 5,000 km</b><b>High · 20,000 km</b><b>Simplified two-body model</b></div>
+<p class="note">The three orbit definitions are project assumptions, not official NASA categories or a validated optimum design.</p></section>
+
+<section class="wrap" id="sim"><h2>Orbital simulator<span>.</span></h2>
+<div class="sim"><div><canvas id="cv"></canvas><p class="note">Drag the station marker to change its phase. Drag empty space to rotate, scroll to zoom. Scene is to scale (1 unit = 1,000 km) except the Sun and Earth markers (direction only) and the moons (enlarged).</p></div>
+<div class="side card">
+<div class="row" id="otabs"></div>
+<label class="f">Orbital phase <output id="pho"></output><input type="range" id="phs" min="0" max="359.9" step="0.1"></label>
+<div class="row"><button id="pp" class="on">Pause</button><button data-s="-24">−1 d</button><button data-s="-1">−1 h</button><button data-s="1">+1 h</button><button data-s="24">+1 d</button></div>
+<div class="row"><label class="f" style="flex:2">Speed<select id="spd"><option value="0.01667">1 min/s</option><option value="0.1667" selected>10 min/s</option><option value="1">1 h/s</option><option value="6">6 h/s</option><option value="24">1 day/s</option></select></label><button id="zi">Zoom +</button><button id="zo">Zoom −</button></div>
+<div class="row"><button id="rc">Reset camera</button><button id="rs">Reset all</button></div>
+<div class="tgs" id="tgs"></div>
+<label class="f">Highlight a metric<select id="hl"><option value="none">None</option><option value="earth">Earth line of sight</option><option value="ecl">Eclipse and shadow</option><option value="Phobos">Phobos distance</option><option value="Deimos">Deimos distance</option></select></label>
+<p class="note" id="info" style="margin:0"></p><div id="live"></div></div></div></section>
+
+<section class="wrap" id="dash"><h2>Orbit comparison<span>.</span></h2>
+<div class="card tw" id="dashT"></div><p class="note">Click a column heading to sort. ★ marks the best orbit for that criterion. Stationkeeping Δv, radiation, debris and long-term reliability are <b>Not modelled</b> and are not scored. Geometry values use the current simulation time.</p></section>
+
+<section class="wrap" id="perf"><h2>Mission performance<span>.</span></h2><div class="cards">
+<div class="card"><h3>Mars-surface access</h3><div class="tw" id="p_surf"></div><p class="note">Descent Δv is a Hohmann-style deorbit burn to a surface-grazing periapsis (entry, descent and landing not included). A lower orbit is cheaper to descend from but may cost more elsewhere, for example in reaching the moons, so lowest is not always best overall.</p></div>
+<div class="card"><h3>Phobos and Deimos access</h3><div class="tw" id="p_moon"></div><p class="note">Coplanar circular-to-circular Hohmann transfers, approximate. Distance alone is not transfer cost.</p></div>
+<div class="card"><h3>Earth communications</h3><div class="tw" id="p_comm"></div><p class="note">Geometric line of sight only. A usable link also needs antenna pointing, power and a link budget.</p></div>
+<div class="card"><h3>Solar power and eclipse</h3><div class="row" style="margin-bottom:8px"><label class="note">Array m²<input type="number" id="pa" value="300" min="1"></label><label class="note">Efficiency %<input type="number" id="pe" value="30" min="1" max="60"></label><label class="note">Load kW<input type="number" id="pl" value="40" min="1"></label></div><div class="tw" id="p_pow"></div><p class="note">Assumes sun-tracking arrays, 1361 W/m² scaled by the inverse square of Mars's distance from the Sun, and 80% usable battery depth.</p></div>
+</div></section>
+
+<section class="wrap" id="weights"><h2>Priorities and decision matrix<span>.</span></h2>
+<div class="card"><div class="row" style="margin-bottom:10px"><button data-p="0">Default</button><button data-p="1">Mars surface exploration</button><button data-p="2">Moon exploration</button><button data-p="3">Long-term Gateway operations</button></div>
+<div id="wsl"></div><p class="note" id="wnote"></p></div>
+<div class="card tw" style="margin-top:14px" id="mx"></div>
+<p class="note">Each modelled metric is scaled across the three candidates (best = 100, worst = 0, higher always better), then multiplied by its normalised weight. Safety gates are not evaluated in this version.</p></section>
+
+<section class="wrap" id="rec"><h2>Recommendation<span>.</span></h2><div id="recT"></div></section>
+
+<section class="wrap" id="method"><h2>Method and references<span>.</span></h2>
+<details open><summary>How are the results calculated?</summary><pre>
+Circular orbit (R_M = 3,390 km, μ_M = 42,828 km³/s²)
+  r = R_M + h             radius from Mars's centre (km)
+  T = 2π √(r³/μ_M)        period (s)
+  v = √(μ_M/r)            circular speed (km/s)
+The Medium orbit period is computed as about 6.5 h from these equations, not the 3.9 h in the brief.
+
+Eclipse and Earth line of sight
+  Mars is a cylinder of radius R_M along the Sun (or Earth) direction.
+  The station is hidden if (p·d) &lt; 0 and |p × d| &lt; R_M, with p the station position and d the unit vector to the Sun or Earth.
+  Orbit percentages sample 360 phases at the current simulation time.
+
+Sun and Earth positions (simplified)
+  Circular coplanar heliocentric orbits: Earth 1 AU, 365.25 d; Mars 1.524 AU, 687 d.
+  Starting angles are arbitrary. Mars's 25° axial tilt and orbital eccentricity are ignored.
+
+Moons: Phobos r = 9,376 km, T = 7.65 h; Deimos r = 23,463 km, T = 30.3 h; circular, equatorial.
+
+Transfers: Hohmann a = (r1+r2)/2, Δv = |v_t1 − v_c1| + |v_c2 − v_t2|, time = π √(a³/μ_M).
+Surface descent uses only the first burn to a periapsis at R_M.
+Capture Δv = √(v∞² + 2μ/r) − √(μ/r), with v∞ = 2.65 km/s (assumed).
+
+Limits: no inclination, eccentricity, perturbations, plane changes or real ephemeris. Not suitable for a final engineering selection.
+</pre></details>
+<p>References: <a href="https://ntrs.nasa.gov/citations/20140016937" target="_blank" rel="noopener">Human Exploration of Phobos</a> · <a href="https://www.nasa.gov/pdf/373665main_NASA-SP-2009-566.pdf" target="_blank" rel="noopener">Mars DRA 5.0</a> · <a href="https://science.nasa.gov/resource/diverse-orbits-around-mars/" target="_blank" rel="noopener">Diverse Orbits Around Mars</a> · <a href="https://science.nasa.gov/mars/mars-relay-network/" target="_blank" rel="noopener">Mars Relay Network</a> · <a href="https://ntrs.nasa.gov/citations/20190026585" target="_blank" rel="noopener">Delta-V Budgets for Phobos and Deimos</a></p></section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const MU=42828,RM=3390,C=299792,AU=149597870.7,VINF=2.65,D2R=Math.PI/180,TAU=2*Math.PI;
+const ORB=[{n:'Low',alt:250,col:'#ffb36b'},{n:'Medium',alt:5000,col:'#6bd6ff'},{n:'High',alt:20000,col:'#b79bff'}];
+const MOON={Phobos:{r:9376,T:7.654,p0:1,col:'#c9c2ba'},Deimos:{r:23463,T:30.31,p0:3.5,col:'#9fb2c4'}};
+const $=s=>document.querySelector(s),fx=(x,d=1)=>x.toFixed(d);
+/* ---- calculation module ---- */
+const Calc={
+ orbit(alt){const r=RM+alt;return{alt,r,v:Math.sqrt(MU/r),T:TAU*Math.sqrt(r**3/MU)/3600}},
+ hoh(r1,r2){const a=(r1+r2)/2,v1=Math.sqrt(MU/r1),v2=Math.sqrt(MU/r2),a1=Math.sqrt(MU*(2/r1-1/a)),a2=Math.sqrt(MU*(2/r2-1/a));return{dv:Math.abs(a1-v1)+Math.abs(v2-a2),h:Math.PI*Math.sqrt(a**3/MU)/3600}},
+ descent(r){const a=(r+RM)/2;return{dv:Math.sqrt(MU/r)-Math.sqrt(MU*(2/r-1/a)),h:Math.PI*Math.sqrt(a**3/MU)/3600}},
+ cap(r){return Math.sqrt(VINF**2+2*MU/r)-Math.sqrt(MU/r)},
+ geo(t){const le=(100+360*t/8766)*D2R,lm=360*t/16488*D2R,E=[Math.cos(le),Math.sin(le)],M=[1.524*Math.cos(lm),1.524*Math.sin(lm)],v=[E[0]-M[0],E[1]-M[1]],de=Math.hypot(v[0],v[1]);return{sun:[-M[0]/1.524,-M[1]/1.524],earth:[v[0]/de,v[1]/de],dE:de,dS:1.524}},
+ hidden(p,d){return p[0]*d[0]+p[1]*d[1]<0&&Math.abs(p[0]*d[1]-p[1]*d[0])<RM},
+ frac(r,d){let n=0;for(let i=0;i<360;i++){const a=i*D2R;if(Calc.hidden([r*Math.cos(a),r*Math.sin(a)],d))n++}return n/360}
+};
+const OR=ORB.map(o=>Calc.orbit(o.alt));
+function metrics(i,t){const o=OR[i],g=Calc.geo(t),e=Calc.frac(o.r,g.sun),b=Calc.frac(o.r,g.earth),P=Calc.hoh(o.r,MOON.Phobos.r),D=Calc.hoh(o.r,MOON.Deimos.r);
+ return{o,g,sun:100*(1-e),vis:100*(1-b),eclMin:e*o.T*60,blkMin:b*o.T*60,e,sf:Calc.descent(o.r),P,D,moon:(P.dv+D.dv)/2,cap:Calc.cap(o.r)}}
+const CR=[{n:'Mars-surface access',get:m=>m.sf.dv,lower:1},{n:'Phobos and Deimos access',get:m=>m.moon,lower:1},{n:'Earth communications',get:m=>m.vis},{n:'Transfer propellant (capture Δv)',get:m=>m.cap,lower:1},{n:'Power and eclipse',get:m=>m.sun},{n:'Long-term operational reliability',get:null}];
+const DEF=[25,15,15,20,10,15],PROF=[DEF,[40,5,15,20,10,10],[10,40,10,20,10,10],[15,10,15,15,20,25]];
+function scores(M,W){const S=CR.map(c=>{if(!c.get)return null;const v=M.map(c.get),lo=Math.min(...v),hi=Math.max(...v);return v.map(x=>hi==lo?100:100*(c.lower?hi-x:x-lo)/(hi-lo))});
+ let tw=0;S.forEach((s,j)=>{if(s)tw+=W[j]});return{S,tw,tot:[0,1,2].map(i=>tw?S.reduce((a,s,j)=>a+(s?W[j]*s[i]:0),0)/tw:0)}}
+/* ---- state ---- */
+let sel=1,t=0,playing=true,speed=1/6,W=DEF.slice(),sk=9,sdir=-1,last=0;const ph0=[.5,2.2,4],ph=ph0.slice();
+const ang=i=>ph[i]+TAU*t/OR[i].T,mAng=n=>MOON[n].p0+TAU*t/MOON[n].T;
+/* ---- 3D scene ---- */
+const cv=$('#cv'),rd=new THREE.WebGLRenderer({canvas:cv,antialias:true}),sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(45,1,.05,600);
+rd.setPixelRatio(Math.min(devicePixelRatio||1,2));
+const tc=document.createElement('canvas');tc.width=512;tc.height=256;const x2=tc.getContext('2d');x2.fillStyle='#b5532c';x2.fillRect(0,0,512,256);
+for(let i=0;i<300;i++){x2.fillStyle=`rgba(${Math.random()<.5?'70,30,15':'235,165,115'},${.05+Math.random()*.13})`;x2.beginPath();x2.ellipse(Math.random()*512,Math.random()*256,10+Math.random()*50,5+Math.random()*25,Math.random()*3,0,7);x2.fill()}
+x2.fillStyle='rgba(255,255,255,.75)';x2.fillRect(0,0,512,8);x2.fillRect(0,248,512,8);
+sc.add(new THREE.Mesh(new THREE.SphereGeometry(RM/1000,64,48),new THREE.MeshPhongMaterial({map:new THREE.CanvasTexture(tc),shininess:4})));
+sc.add(new THREE.AmbientLight(0x404058,.9));const lt=new THREE.DirectionalLight(0xffffff,1.3);sc.add(lt);
+const ring=(r,c,o)=>{const p=[];for(let i=0;i<=180;i++)p.push(new THREE.Vector3(r*Math.cos(i*TAU/180),0,r*Math.sin(i*TAU/180)));const l=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(p),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:o}));sc.add(l);return l};
+const RG=OR.map((o,i)=>ring(o.r/1000,ORB[i].col,1)),MR={};
+const gtx=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const k=c.getContext('2d'),r=k.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');k.fillStyle=r;k.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+const glow=(c,s)=>{const p=new THREE.Sprite(new THREE.SpriteMaterial({map:gtx,color:c,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));p.scale.setScalar(s);return p};
+const ST=ORB.map(o=>{const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:o.col}),w=new THREE.MeshBasicMaterial({color:0xffffff});g.add(new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),w));g.add(new THREE.Mesh(new THREE.BoxGeometry(2.2,.04,.6),m));g.add(glow(o.col,4));sc.add(g);return g});
+const MM={};Object.keys(MOON).forEach(n=>{MM[n]=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),new THREE.MeshBasicMaterial({color:MOON[n].col}));MM[n].add(glow(MOON[n].col,1.8));sc.add(MM[n]);MR[n]=ring(MOON[n].r/1000,0x667088,.35)});
+const sunM=new THREE.Mesh(new THREE.SphereGeometry(1.6,24,16),new THREE.MeshBasicMaterial({color:0xffd35c})),earM=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0x4c9dff}));sc.add(sunM,earM);
+const shadow=new THREE.Mesh(new THREE.CylinderGeometry(RM/1000,RM/1000,40,40,1,true),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.45,side:THREE.DoubleSide,depthWrite:false}));sc.add(shadow);
+const mkL=c=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));const l=new THREE.Line(g,new THREE.LineBasicMaterial({color:c}));l.frustumCulled=false;sc.add(l);return l};
+const setL=(L,a,b)=>{const p=L.geometry.attributes.position;p.setXYZ(0,a.x,a.y,a.z);p.setXYZ(1,b.x,b.y,b.z);p.needsUpdate=true};
+const cL=mkL(0x4cd9a0),sL=mkL(0xffd35c),mL=mkL(0xffffff);
+const cs={az:.6,el:.75,d:60};function camSet(){cam.position.set(cs.d*Math.cos(cs.el)*Math.sin(cs.az),cs.d*Math.sin(cs.el),cs.d*Math.cos(cs.el)*Math.cos(cs.az));cam.lookAt(0,0,0)}
+const frameD=()=>Math.max(9,OR[sel].r/1000*3.2);
+/* ---- controls ---- */
+const TG=[['earth','Earth'],['sun','Sun'],['phobos','Phobos'],['deimos','Deimos'],['comm','Earth link line'],['sunl','Sun line'],['shadow','Mars shadow'],['all','Compare all stations']];
+$('#tgs').innerHTML=TG.map(([k,n])=>`<label><input type="checkbox" id="tg_${k}" ${k=='all'?'':'checked'}>${n}</label>`).join('');const on=k=>$('#tg_'+k).checked;
+$('#otabs').innerHTML=ORB.map((o,i)=>`<button data-o="${i}"><span class="dot" style="background:${o.col}"></span>${o.n}</button>`).join('');
+function pick(i){sel=i;cs.d=frameD();document.querySelectorAll('[data-o]').forEach(b=>b.classList.toggle('on',+b.dataset.o==i))}
+document.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>pick(+b.dataset.o));
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{t+=+b.dataset.s;renderAll()});
+$('#pp').onclick=()=>{playing=!playing;$('#pp').textContent=playing?'Pause':'Play';$('#pp').classList.toggle('on',playing)};
+$('#spd').onchange=e=>speed=+e.target.value;$('#zi').onclick=()=>cs.d=Math.max(4,cs.d*.78);$('#zo').onclick=()=>cs.d=Math.min(130,cs.d*1.28);
+$('#rc').onclick=()=>{cs.az=.6;cs.el=.75;cs.d=frameD()};
+$('#rs').onclick=()=>{t=0;ph0.forEach((v,i)=>ph[i]=v);speed=1/6;$('#spd').value='0.1667';playing=false;$('#pp').click();TG.forEach(([k])=>$('#tg_'+k).checked=k!='all');$('#hl').value='none';W=DEF.slice();wsl();cs.az=.6;cs.el=.75;pick(1);renderAll()};
+$('#phs').oninput=e=>{ph[sel]=+e.target.value*D2R-TAU*t/OR[sel].T};
+const INFO={none:'Pick a metric to highlight its geometry and read why it matters.',earth:'Earth line of sight: Mars blocks the direct link whenever the station is behind it as seen from Earth. This is a geometric check only; a usable link also needs antenna pointing and a link budget.',ecl:'Eclipse: when the station is inside Mars\'s shadow cylinder its arrays produce nothing and batteries must carry the load. Lower orbits spend a larger fraction of each revolution in shadow.',Phobos:'Phobos distance: the live range from the station to Phobos. Range is not transfer cost; see the transfer Δv table for that.',Deimos:'Deimos distance: the live range from the station to Deimos. Range is not transfer cost; see the transfer Δv table for that.'};
+$('#hl').onchange=()=>$('#info').textContent=INFO[$('#hl').value];$('#info').textContent=INFO.none;
+let drag=null,lx=0,ly=0;const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),ray=new THREE.Raycaster(),hit=new THREE.Vector3();
+cv.onpointerdown=e=>{const r=cv.getBoundingClientRect(),v=ST[sel].position.clone().project(cam),sx=(v.x*.5+.5)*r.width,sy=(-v.y*.5+.5)*r.height;drag=Math.hypot(e.clientX-r.left-sx,e.clientY-r.top-sy)<42?'st':'cam';lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId)};
+cv.onpointermove=e=>{if(!drag)return;const r=cv.getBoundingClientRect();if(drag=='st'){ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1)),cam);if(ray.ray.intersectPlane(plane,hit))ph[sel]=Math.atan2(hit.z,hit.x)-TAU*t/OR[sel].T}else{cs.az-=(e.clientX-lx)*.008;cs.el=Math.max(-1.45,Math.min(1.45,cs.el+(e.clientY-ly)*.008))}lx=e.clientX;ly=e.clientY};
+cv.onpointerup=cv.onpointercancel=()=>drag=null;cv.onwheel=e=>{e.preventDefault();cs.d=Math.max(4,Math.min(130,cs.d*Math.exp(e.deltaY*.001)))};
+/* ---- live panel ---- */
+const stt=(l,v,tip,c)=>`<div class="st" title="${tip}"><b class="${c||''}">${v}</b><span>${l}</span></div>`;
+function live(){const o=OR[sel],a=ang(sel),p=[o.r*Math.cos(a),o.r*Math.sin(a)],g=Calc.geo(t),ecl=Calc.hidden(p,g.sun),blk=Calc.hidden(p,g.earth),A=((a/D2R)%360+360)%360;
+ const md=n=>{const q=MOON[n],a2=mAng(n);return Math.hypot(p[0]-q.r*Math.cos(a2),p[1]-q.r*Math.sin(a2))};
+ const d=Math.floor(t/24),h=Math.floor(t%24),m=Math.floor((t*60)%60);
+ $('#live').innerHTML=`<div class="note" style="margin:4px 0">Orbit values (calculated, constant) · Simplified model</div><div class="g2">`+
+ stt('Altitude',fx(o.alt,0)+' km','Height above Mars mean radius')+stt('Radius from centre',fx(o.r,0)+' km','r = R_M + h')+stt('Period',fx(o.T,2)+' h','T = 2π√(r³/μ)')+stt('Circular speed',fx(o.v,2)+' km/s','v = √(μ/r)')+stt('Inclination / eccentricity','0° / 0','Assumed in this version')+stt('Distance to surface',fx(o.alt,0)+' km','Equals altitude for a circular orbit')+
+ `</div><div class="note" style="margin:8px 0 4px">Position and time (updates live) · T+ ${d} d ${h} h ${m} min</div><div class="g2">`+
+ stt('Phase',fx(A,1)+'°','Angle around the orbit')+stt('Sunlight',ecl?'Eclipse':'Sunlit','Inside Mars shadow cylinder?',ecl?'bad':'good')+stt('Earth link',blk?'Blocked':'Clear','Direct line of sight to Earth',blk?'bad':'good')+stt('Earth distance',fx(g.dE*AU/1e6,0)+' million km','Mars to Earth, simplified model')+stt('Light time to Earth',fx(g.dE*AU/C/60,1)+' min','One way')+stt('Mars to Sun',fx(g.dS,2)+' AU','Simplified circular orbit')+stt('To Phobos',fx(md('Phobos'),0)+' km','Live range')+stt('To Deimos',fx(md('Deimos'),0)+' km','Live range')+'</div>';
+ return{p,g,ecl,blk}}
+/* ---- dashboard renderers ---- */
+const tbl=(h,rows)=>'<table><tr>'+h.map(x=>`<th>${x}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join('')+'</table>';
+const nm=i=>`<span class="dot" style="background:${ORB[i].col}"></span>${ORB[i].n}`;
+const COLS=[['Altitude (km)',m=>m.o.alt,0],['Period (h)',m=>m.o.T,2],['Speed (km/s)',m=>m.o.v,2],['Sunlit (%)',m=>m.sun,1,'max'],['Earth visible (%)',m=>m.vis,1,'max'],['Eclipse (min/orbit)',m=>m.eclMin,1,'min'],['Descent Δv (km/s)',m=>m.sf.dv,2,'min'],['Moon Δv avg (km/s)',m=>m.moon,2,'min'],['Capture Δv (km/s)',m=>m.cap,2,'min'],['Score',(m,i,r)=>r.tot[i],0,'max']];
+function dash(M,r){const V=COLS.map(c=>M.map((m,i)=>c[1](m,i,r))),ix=[0,1,2].sort((a,b)=>(V[sk][a]-V[sk][b])*sdir);
+ let h='<table><tr><th>Orbit</th>'+COLS.map((c,k)=>`<th data-c="${k}">${c[0]}${k==sk?(sdir>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>';
+ ix.forEach(i=>{h+=`<tr><td>${nm(i)}</td>`+COLS.map((c,k)=>{const v=V[k],b=c[3]?(c[3]=='max'?Math.max(...v):Math.min(...v)):null,star=b!==null&&Math.abs(v[i]-b)<1e-9&&Math.max(...v)-Math.min(...v)>1e-9;return`<td class="${star?'best':''}">${fx(v[i],c[2])}${star?' ★':''}</td>`}).join('')+'</tr>'});$('#dashT').innerHTML=h+'</table>'}
+$('#dashT').onclick=e=>{const th=e.target.closest('th[data-c]');if(!th)return;const k=+th.dataset.c;if(k==sk)sdir=-sdir;else{sk=k;sdir=COLS[k][3]=='max'?-1:1}renderAll()};
+function perf(M,live_){const g=M[0].g;
+ $('#p_surf').innerHTML=tbl(['Orbit','Altitude (km)','Descent Δv (km/s)','Coast (h)'],M.map((m,i)=>[nm(i),fx(m.o.alt,0),fx(m.sf.dv,2),fx(m.sf.h,2)]));
+ $('#p_comm').innerHTML=`<p>Selected orbit now: <b class="${live_.blk?'bad':'good'}">${live_.blk?'Blocked by Mars':'Direct line of sight clear'}</b></p>`+tbl(['Orbit','Visible (%)','Blackout (min/orbit)'],M.map((m,i)=>[nm(i),fx(m.vis,1),fx(m.blkMin,1)]));
+ $('#p_moon').innerHTML=tbl(['Orbit','Phobos Δv','Phobos (h)','Deimos Δv','Deimos (h)'],M.map((m,i)=>[nm(i),fx(m.P.dv,2),fx(m.P.h,1),fx(m.D.dv,2),fx(m.D.h,1)]))+'<p class="note">Δv in km/s.</p>';
+ const A=+$('#pa').value||0,E=(+$('#pe').value||0)/100,L=+$('#pl').value||0,P=1361/g.dS**2*A*E/1000;
+ $('#p_pow').innerHTML=`<p class="note">Irradiance ${fx(1361/g.dS**2,0)} W/m² · array output ${fx(P,1)} kW (sunlit)</p>`+tbl(['Orbit','Eclipse (min)','Energy/orbit (kWh)','Battery needed (kWh)'],M.map((m,i)=>[nm(i),fx(m.eclMin,1),fx(P*(1-m.e)*m.o.T,0),fx(L*m.e*m.o.T/.8,0)]))}
+['pa','pe','pl'].forEach(id=>$('#'+id).oninput=()=>renderAll());
+function wsl(){$('#wsl').innerHTML=CR.map((c,j)=>`<div class="wr"><span>${c.n}</span><input type="range" min="0" max="100" value="${W[j]}" data-w="${j}"><output id="wo${j}"></output></div>`).join('');
+ document.querySelectorAll('[data-w]').forEach(s=>s.oninput=()=>{W[+s.dataset.w]=+s.value;renderAll()})}
+function wout(){const s=W.reduce((a,b)=>a+b,0);CR.forEach((c,j)=>{$('#wo'+j).textContent=(s?fx(W[j]/s*100,0):0)+'%'});const pi=PROF.findIndex(p=>p.every((v,i)=>v===W[i]));document.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('on',+b.dataset.p===pi));$('#wnote').textContent=s?`Current profile: ${pi<0?'Custom':['Default','Mars surface exploration','Moon exploration','Long-term Gateway operations'][pi]}. Weights normalised to 100%. Long-term reliability (${fx(W[5]/s*100,0)}%) is not modelled, so it is excluded and the remaining weights are rescaled.`:'All weights are zero; set at least one priority.'}
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{W=PROF[+b.dataset.p].slice();wsl();renderAll()});
+function matrix(M,r){const s=W.reduce((a,b)=>a+b,0);let h='<table><tr><th>Criterion</th><th>Weight</th>'+ORB.map(o=>`<th style="color:${o.col}">${o.n}</th>`).join('')+'</tr>';
+ CR.forEach((c,j)=>{h+=`<tr><td>${c.n}</td><td>${s?fx(W[j]/s*100,0):0}%</td>`;if(!r.S[j])h+='<td colspan="3" class="mut">Not modelled, excluded from score</td>';else{const S=r.S[j],d=S.some(v=>v<99.99);h+=S.map((v,i)=>`<td>${fx(v,0)}${d&&v>99.99?' ★':''}<div class="bar"><i style="width:${v}%;background:${ORB[i].col}"></i></div></td>`).join('')}h+='</tr>'});
+ const mx=Math.max(...r.tot);h+='<tr><td><b>Overall score</b></td><td></td>'+r.tot.map((v,i)=>`<td class="${v==mx&&r.tw?'best':''}"><b>${fx(v,1)}</b>${v==mx&&r.tw?' ★':''}<div class="bar"><i style="width:${v}%;background:${ORB[i].col}"></i></div></td>`).join('')+'</tr></table>';$('#mx').innerHTML=h}
+function recom(M,r){if(!r.tw){$('#recT').innerHTML='<p>Set at least one non-zero modelled priority to see a recommendation.</p>';return}
+ const rank=[0,1,2].sort((a,b)=>r.tot[b]-r.tot[a]),def=scores(M,DEF),db=[0,1,2].sort((a,b)=>def.tot[b]-def.tot[a])[0],b=rank[0];
+ const why=i=>{const s=[],w=[];CR.forEach((c,j)=>{if(r.S[j]){if(r.S[j][i]>99.99&&r.S[j].some(v=>v<99.99))s.push(c.n);if(r.S[j][i]<.01&&r.S[j].some(v=>v>.01))w.push(c.n)}});return[s,w]};
+ const top=CR.map((c,j)=>r.S[j]?{n:c.n,v:W[j]*r.S[j][b]}:null).filter(Boolean).sort((a,c)=>c.v-a.v).slice(0,2).map(x=>x.n);
+ $('#recT').innerHTML=`<div class="card"><h3>Best for your current priorities: <span style="color:${ORB[b].col}">${ORB[b].n} orbit (${fx(r.tot[b],1)}/100)</span></h3><p>Mainly because of ${top.join(' and ').toLowerCase()}. Under default weights with the simplified model, the highest-scoring orbit is <b>${ORB[db].n}</b>. This is not a validated engineering recommendation, which would need a full mission trade study.</p></div><div class="rg">`+rank.map(i=>{const[s,w]=why(i);return`<div class="card"><h3><span class="dot" style="background:${ORB[i].col}"></span>${ORB[i].n}: ${fx(r.tot[i],1)}</h3><p class="good">Strongest: ${s.length?s.join(', '):'none outright'}</p><p class="bad">Weakest: ${w.length?w.join(', '):'none outright'}</p></div>`}).join('')+`</div><div class="card" style="margin-top:14px"><h3>Uncertainties and next calculations</h3><p class="note">Not modelled: stationkeeping Δv and drag, radiation dose, debris risk, relay availability, inclination and eccentricity, plane changes, real ephemerides, landing-site visibility, link budgets and safety gates. A real selection needs numerical propagation, a communications link analysis, environment models and a full trajectory trade study.</p></div>`}
+let rt=0;function renderAll(){const M=[0,1,2].map(i=>metrics(i,t)),r=scores(M,W),L=live();wout();dash(M,r);perf(M,L);matrix(M,r);recom(M,r)}
+/* ---- loop ---- */
+function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;if(playing)t+=dt*speed;
+ const w=cv.clientWidth,h=cv.clientHeight;if(cv.width!=Math.round(w*rd.getPixelRatio())||cv.height!=Math.round(h*rd.getPixelRatio())){rd.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+ const g=Calc.geo(t),sd=new THREE.Vector3(g.sun[0],0,g.sun[1]),ed=new THREE.Vector3(g.earth[0],0,g.earth[1]),hl=$('#hl').value;
+ lt.position.copy(sd).multiplyScalar(50);sunM.position.copy(sd).multiplyScalar(70);earM.position.copy(ed).multiplyScalar(62);sunM.visible=on('sun');earM.visible=on('earth');earM.scale.setScalar(hl=='earth'?2:1);
+ shadow.visible=on('shadow');shadow.material.opacity=hl=='ecl'?.8:.45;shadow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),sd.clone().negate());shadow.position.copy(sd).multiplyScalar(-20);
+ const ss=Math.max(.2,cs.d*.02);ORB.forEach((o,i)=>{const a=ang(i),r=OR[i].r/1000;ST[i].position.set(r*Math.cos(a),0,r*Math.sin(a));ST[i].scale.setScalar(ss);ST[i].children[2].scale.setScalar(4+.6*Math.sin(now/350+i));ST[i].visible=i==sel||on('all');RG[i].material.opacity=i==sel||on('all')?1:.3});
+ Object.keys(MOON).forEach(n=>{const a=mAng(n),r=MOON[n].r/1000;MM[n].position.set(r*Math.cos(a),0,r*Math.sin(a));MM[n].visible=MR[n].visible=on(n.toLowerCase());MM[n].scale.setScalar(Math.max(1,cs.d*.02)*(hl==n?2.2:1))});
+ const sp=ST[sel].position,p=[OR[sel].r*Math.cos(ang(sel)),OR[sel].r*Math.sin(ang(sel))],blk=Calc.hidden(p,g.earth);
+ cL.visible=on('comm');setL(cL,sp,sp.clone().addScaledVector(ed,hl=='earth'?60:30));cL.material.color.set(blk?0xff5d6c:0x4cd9a0);
+ sL.visible=on('sunl');setL(sL,sp,sp.clone().addScaledVector(sd,30));
+ mL.visible=hl=='Phobos'||hl=='Deimos';if(mL.visible)setL(mL,sp,MM[hl].position);
+ camSet();rd.render(sc,cam);
+ if(document.activeElement!==$('#phs'))$('#phs').value=(((ang(sel)/D2R)%360)+360)%360;$('#pho').textContent=fx(((ang(sel)/D2R)%360+360)%360,1)+'°';
+ if(now-rt>250){rt=now;renderAll()}requestAnimationFrame(loop)}
+/* ---- QR ---- */
+$('#url').textContent=location.href;$('#jb').onclick=()=>{$('#join').style.display='flex';const q=$('#qr');if(!q.firstChild){try{new QRCode(q,{text:location.href,width:240,height:240})}catch(e){q.textContent='QR unavailable. Share the link below.'}}};$('#jc').onclick=()=>$('#join').style.display='none';
+wsl();pick(1);renderAll();requestAnimationFrame(loop);
+</script></body></html>
